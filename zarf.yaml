@@ -1,0 +1,18 @@
+kind: ZarfPackageConfig
+metadata:
+  name: vllm
+  description: A Zarf package for vLLM local model serving.
+  version: 0.1.0
+
+components:
+  - name: vllm
+    description: Deploy vLLM with a bundled read-only Qwen2.5 model.
+    required: true
+    images:
+      - docker.io/vllm/vllm-openai-cpu:latest
+      - localhost:5000/vllm/qwen:2.5-0.5b-instruct
+    manifests:
+      - name: vllm-manifests
+        namespace: vllm
+        files:
+          - manifests/vllm.yaml

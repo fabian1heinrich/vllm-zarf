@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  labels:
+    app.kubernetes.io/name: vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+    spec:
+      # Avoid Kubernetes service env var injection like VLLM_PORT=tcp://...
+      # which conflicts with vLLM's own VLLM_PORT parsing.
+      enableServiceLinks: false
+      containers:
+        - name: vllm
+          image: docker.io/vllm/vllm-openai-cpu:latest
+          imagePullPolicy: Always
+          args:
+            - /models/Qwen2.5-0.5B-Instruct
+            - --served-model-name
+            - Qwen/Qwen2.5-0.5B-Instruct
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            # Default swap-space is 4 GiB, which exceeds memory on small kind nodes.
+            - --swap-space
+            - "0"
+          ports:
+            - containerPort: 8000
+              name: http
+          startupProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 15
+            failureThreshold: 6
+            timeoutSeconds: 2
+            # startupProbe gates liveness checks until model init is complete.
+            initialDelaySeconds: 0
+          volumeMounts:
+            - name: model-seed
+              mountPath: /models
+              readOnly: true
+      volumes:
+        - name: model-seed
+          image:
+            reference: localhost:5000/vllm/qwen:2.5-0.5b-instruct
+            pullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  labels:
+    app.kubernetes.io/name: vllm
+spec:
+  selector:
+    app.kubernetes.io/name: vllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
