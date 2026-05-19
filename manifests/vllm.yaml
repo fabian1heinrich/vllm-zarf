@@ -21,6 +21,9 @@ spec:
         - name: vllm
           image: docker.io/vllm/vllm-openai-cpu:latest
           imagePullPolicy: Always
+          command:
+            - vllm
+            - serve
           args:
             - /models/Qwen2.5-0.5B-Instruct
             - --served-model-name
