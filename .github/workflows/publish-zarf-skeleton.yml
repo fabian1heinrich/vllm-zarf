@@ -1,0 +1,74 @@
+name: Publish Zarf Skeleton
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - zarf.yaml
+      - manifests/**
+      - .github/workflows/publish-zarf-skeleton.yml
+  workflow_dispatch:
+    inputs:
+      registry_path:
+        description: "Path after ghcr.io/ (defaults to owner/repo)"
+        required: false
+        default: ""
+      zarf_version:
+        description: "Zarf version to install"
+        required: false
+        default: "v0.70.1"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-skeleton:
+    name: Publish Zarf skeleton package
+    runs-on: ubuntu-latest
+    env:
+      DEFAULT_REGISTRY_PATH: ${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve registry path
+        id: registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          REGISTRY_PATH="${{ github.event.inputs.registry_path || '' }}"
+          if [ -z "${REGISTRY_PATH}" ]; then
+            REGISTRY_PATH="${DEFAULT_REGISTRY_PATH}"
+          fi
+          echo "oci_url=oci://ghcr.io/${REGISTRY_PATH}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install zarf
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZARF_VERSION="${{ github.event.inputs.zarf_version || '' }}"
+          if [ -z "${ZARF_VERSION}" ]; then
+            ZARF_VERSION="v0.70.1"
+          fi
+          if [[ "${ZARF_VERSION}" != v* ]]; then
+            ZARF_VERSION="v${ZARF_VERSION}"
+          fi
+          curl -fsSL "https://github.com/zarf-dev/zarf/releases/download/${ZARF_VERSION}/zarf_${ZARF_VERSION}_Linux_amd64" -o zarf
+          chmod +x zarf
+          sudo mv zarf /usr/local/bin/zarf
+          zarf version
+
+      - name: Login to GHCR
+        shell: bash
+        run: |
+          set -euo pipefail
+          zarf tools registry login ghcr.io --username "${{ github.actor }}" --password "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Publish skeleton package
+        shell: bash
+        run: |
+          set -euo pipefail
+          zarf package publish . "${{ steps.registry.outputs.oci_url }}" --with-build-machine-info --confirm

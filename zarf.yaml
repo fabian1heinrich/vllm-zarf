@@ -1,7 +1,7 @@
 kind: ZarfPackageConfig
 metadata:
   name: vllm
-  description: A Zarf package for vLLM local model serving.
+  description: A Zarf package for vLLM model serving.
   version: 0.1.0
 
 components:
@@ -10,7 +10,7 @@ components:
     required: true
     images:
       - docker.io/vllm/vllm-openai-cpu:latest
-      - localhost:5000/vllm/qwen:2.5-0.5b-instruct
+      - ghcr.io/fabian1heinrich/vllm-zarf/qwen:2.5-0.5b-instruct
     manifests:
       - name: vllm-manifests
         namespace: vllm

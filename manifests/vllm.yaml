@@ -60,7 +60,7 @@ spec:
       volumes:
         - name: model-seed
           image:
-            reference: localhost:5000/vllm/qwen:2.5-0.5b-instruct
+            reference: ghcr.io/fabian1heinrich/vllm-zarf/qwen:2.5-0.5b-instruct
             pullPolicy: Always
 ---
 apiVersion: v1

@@ -6,13 +6,12 @@ ARG MODEL=Qwen/Qwen2.5-0.5B-Instruct
 FROM ${VLLM_IMAGE} AS downloader
 
 ARG MODEL
-ARG HF_TOKEN
 
 ENV HF_HUB_DISABLE_TELEMETRY=1
 
 RUN set -eux; \
     python3 -m pip install --no-cache-dir --upgrade huggingface_hub; \
-    export MODEL HF_TOKEN; \
+    export MODEL; \
     python3 - <<'PY'
 import os
 from pathlib import Path
@@ -25,9 +24,6 @@ local_dir = Path("/models") / model_dir_name
 local_dir.mkdir(parents=True, exist_ok=True)
 
 download_kwargs = {"repo_id": model, "local_dir": str(local_dir)}
-token = os.environ.get("HF_TOKEN")
-if token:
-    download_kwargs["token"] = token
 
 try:
     snapshot_download(local_dir_use_symlinks=False, **download_kwargs)

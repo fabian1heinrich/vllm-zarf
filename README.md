@@ -1,6 +1,6 @@
 # vLLM ZARF
 
-Zarf package to deploy vLLM on Kubernetes with a bundled local model image.
+Zarf package to deploy vLLM on Kubernetes with a bundled model image.
 
 ## What is included
 
@@ -14,14 +14,11 @@ The `Dockerfile` uses a multi-stage build:
 1. Pulls a model from Hugging Face in a build stage
 2. Copies only `/models` into a `scratch` final image
 
-Build and push the model image referenced in `zarf.yaml`:
+The GitHub Actions workflow publishes the model image referenced in `zarf.yaml` to GHCR:
 
 ```bash
-docker build -t localhost:5000/vllm/qwen:2.5-0.5b-instruct --build-arg MODEL=Qwen/Qwen2.5-0.5B-Instruct .
-docker push localhost:5000/vllm/qwen:2.5-0.5b-instruct
+ghcr.io/fabian1heinrich/vllm-zarf/qwen:2.5-0.5b-instruct
 ```
-
-If the model requires auth, add `--build-arg HF_TOKEN=$HF_TOKEN`.
 
 The deployment mounts the model image at `/models`, which is used by vLLM at startup.
 
