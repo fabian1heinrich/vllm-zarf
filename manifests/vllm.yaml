@@ -32,9 +32,6 @@ spec:
             - 0.0.0.0
             - --port
             - "8000"
-            # Default swap-space is 4 GiB, which exceeds memory on small kind nodes.
-            - --swap-space
-            - "0"
           ports:
             - containerPort: 8000
               name: http
