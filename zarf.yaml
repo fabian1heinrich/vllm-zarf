@@ -2,7 +2,7 @@ kind: ZarfPackageConfig
 metadata:
   name: vllm
   description: A Zarf package for vLLM model serving.
-  version: 0.1.2
+  version: 0.1.3
 
 components:
   - name: vllm

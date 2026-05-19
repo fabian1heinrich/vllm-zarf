@@ -21,6 +21,11 @@ spec:
         - name: vllm
           image: docker.io/vllm/vllm-openai-cpu:latest
           imagePullPolicy: Always
+          env:
+            # CPU vLLM uses this env var for KV cache sizing. Keep it small for
+            # local kind nodes; increase it for longer context or concurrency.
+            - name: VLLM_CPU_KVCACHE_SPACE
+              value: "1"
           command:
             - vllm
             - serve
@@ -39,7 +44,7 @@ spec:
             tcpSocket:
               port: 8000
             periodSeconds: 5
-            failureThreshold: 60
+            failureThreshold: 180
           readinessProbe:
             tcpSocket:
               port: 8000
