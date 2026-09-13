@@ -19,20 +19,23 @@ spec:
       enableServiceLinks: false
       containers:
         - name: vllm
-          image: docker.io/vllm/vllm-openai-cpu:latest
-          imagePullPolicy: Always
+          image: docker.io/vllm/vllm-openai-cpu:v0.29.0-x86_64@sha256:66064cf683152e60eff2e5b18ec2d4ace236fb063c0a241f918691db9caddcf4
+          imagePullPolicy: IfNotPresent
           env:
-            # CPU vLLM uses this env var for KV cache sizing. Keep it small for
-            # local kind nodes; increase it for longer context or concurrency.
+            # CPU vLLM uses this env var for KV cache sizing. Two GiB supports
+            # one full native-context request; increase it for concurrency.
             - name: VLLM_CPU_KVCACHE_SPACE
-              value: "1"
+              value: "2"
           command:
             - vllm
             - serve
           args:
-            - /models/Qwen2.5-0.5B-Instruct
+            - /models/Qwen2.5-7B-Instruct
             - --served-model-name
-            - Qwen/Qwen2.5-0.5B-Instruct
+            - Qwen/Qwen2.5-7B-Instruct
+            - --enable-auto-tool-choice
+            - --tool-call-parser
+            - hermes
             - --host
             - 0.0.0.0
             - --port
@@ -40,6 +43,13 @@ spec:
           ports:
             - containerPort: 8000
               name: http
+          resources:
+            requests:
+              cpu: "2"
+              memory: 20Gi
+            limits:
+              cpu: "8"
+              memory: 24Gi
           startupProbe:
             tcpSocket:
               port: 8000
@@ -65,8 +75,8 @@ spec:
       volumes:
         - name: model-seed
           image:
-            reference: ghcr.io/fabian1heinrich/vllm-zarf/qwen:2.5-0.5b-instruct
-            pullPolicy: Always
+            reference: ghcr.io/fabian1heinrich/vllm-zarf/qwen:2.5-7b-instruct@sha256:59b4a01d4e56f14b3997af400ed33c90d336a43f247aeb742637c3d02f304f1b
+            pullPolicy: IfNotPresent
 ---
 apiVersion: v1
 kind: Service
