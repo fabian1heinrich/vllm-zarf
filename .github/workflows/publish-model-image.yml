@@ -8,6 +8,15 @@ on:
       - Dockerfile
       - .github/workflows/publish-model-image.yml
   workflow_dispatch:
+    inputs:
+      model_variant:
+        description: Qwen model variant to publish
+        required: true
+        default: 2.5-7b-instruct
+        type: choice
+        options:
+          - 2.5-7b-instruct
+          - 2.5-0.5b-instruct
 
 permissions:
   contents: read
@@ -16,8 +25,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/qwen
-  MODEL: Qwen/Qwen2.5-0.5B-Instruct
-  MODEL_TAG: 2.5-0.5b-instruct
+  MODEL_VARIANT: ${{ inputs.model_variant || '2.5-7b-instruct' }}
 
 jobs:
   publish:
@@ -27,6 +35,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Resolve pinned model
+        id: model
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${MODEL_VARIANT}" in
+            2.5-7b-instruct)
+              echo "id=Qwen/Qwen2.5-7B-Instruct" >> "${GITHUB_OUTPUT}"
+              echo "revision=a09a35458c702b33eeacc393d103063234e8bc28" >> "${GITHUB_OUTPUT}"
+              echo "tag=2.5-7b-instruct" >> "${GITHUB_OUTPUT}"
+              ;;
+            2.5-0.5b-instruct)
+              echo "id=Qwen/Qwen2.5-0.5B-Instruct" >> "${GITHUB_OUTPUT}"
+              echo "revision=7ae557604adf67be50417f59c2c2f167def9a775" >> "${GITHUB_OUTPUT}"
+              echo "tag=2.5-0.5b-instruct" >> "${GITHUB_OUTPUT}"
+              ;;
+            *)
+              echo "Unsupported model variant: ${MODEL_VARIANT}" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,8 +74,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ env.MODEL_TAG }}
-            type=sha,prefix=${{ env.MODEL_TAG }}-
+            type=raw,value=${{ steps.model.outputs.tag }}
+            type=sha,prefix=${{ steps.model.outputs.tag }}-
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -53,8 +83,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            MODEL=${{ env.MODEL }}
+            MODEL=${{ steps.model.outputs.id }}
+            MODEL_REVISION=${{ steps.model.outputs.revision }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
